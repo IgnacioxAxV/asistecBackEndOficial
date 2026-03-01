@@ -66,9 +66,13 @@ def create_user(user: schemas.UserCreate, db: Session = Depends(get_db)):
     user_data = user.model_dump(exclude={"password"})
     new_user = models.User(**user_data, password=hashed_password)
 
+    # ISSUE: la creación del usuario y la asignación de suscripciones primarias son
+    # dos pasos lógicamente distintos que hoy comparten la misma transacción.
+    # Se sugiere extraer el bloque de suscripciones a una función `primary_subscriptions(user, db)`
+    # que reciba el usuario ya creado y se encargue exclusivamente de esa lógica,
+    # mejorando la separación de responsabilidades y facilitando el testing independiente.
+
     db.add(new_user)
-    db.commit()
-    db.refresh(new_user)
 
     # 1. Suscribir al canal principal del área asignada
     main_channel = (
@@ -111,7 +115,10 @@ def create_user(user: schemas.UserCreate, db: Session = Depends(get_db)):
             )
         )
 
+    # Un único commit garantiza que el usuario y sus suscripciones primarias
+    # se persistan juntos; si algo falla, ninguno queda a medias en la DB.
     db.commit()
+    db.refresh(new_user)
 
     return JSONResponse(
         content={"msg": "SUCCESS", "user_id": new_user.user_id},
