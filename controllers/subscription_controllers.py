@@ -18,10 +18,10 @@ def create_subscription(
     )
 
     if existing:
-        # Si la suscripción existe, verificamos si el estado de is_favorite es diferente
-        if existing.is_favorite != subscription.is_favorite:
-            # Si es diferente, actualizamos el estado de is_favorite
-            existing.is_favorite = subscription.is_favorite
+        # Si la suscripción existe, verificamos si el estado de is_subscribed es diferente
+        if existing.is_subscribed != subscription.is_subscribed:
+            # Si es diferente, actualizamos el estado de is_subscribed
+            existing.is_subscribed = subscription.is_subscribed
             db.commit()
             db.refresh(existing)
             return JSONResponse(
@@ -47,7 +47,7 @@ def create_subscription(
     )
 
 
-# Cancelar una suscripción existente (marca is_favorite=False)
+# Cancelar una suscripción existente (marca is_subscribed=False)
 def cancel_subscription(user_id: int, channel_id: int, db: Session = Depends(get_db)):
     subscription = (
         db.query(models.Subscription)
@@ -60,7 +60,7 @@ def cancel_subscription(user_id: int, channel_id: int, db: Session = Depends(get
             status_code=status.HTTP_404_NOT_FOUND, detail="Subscription not found"
         )
 
-    subscription.is_favorite = False
+    subscription.is_subscribed = False
     db.commit()
 
     return JSONResponse(content={"msg": "SUCCESS"}, status_code=status.HTTP_200_OK)

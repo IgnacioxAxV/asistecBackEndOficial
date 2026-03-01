@@ -8,7 +8,7 @@ from database import get_db
 # Obtener canales a los que el usuario está suscrito
 def subscribed_channels(user_id: int, db: Session = Depends(get_db)):
     query = db.query(models.Subscription).filter(models.Subscription.user_id == user_id)
-    query = query.filter(models.Subscription.is_favorite == True)
+    query = query.filter(models.Subscription.is_subscribed == True)
 
     subscriptions = query.join(models.Channel).all()
 
@@ -18,7 +18,7 @@ def subscribed_channels(user_id: int, db: Session = Depends(get_db)):
             "channel_name": sub.channel.channel_name,
             "area_id": sub.channel.area_id,
             "is_admin": sub.is_admin,
-            "is_favorite": sub.is_favorite,
+            "is_subscribed": sub.is_subscribed,
         }
         for sub in subscriptions
     ]
@@ -28,7 +28,7 @@ def subscribed_channels(user_id: int, db: Session = Depends(get_db)):
 def not_subscribed_channels(user_id: int, db: Session = Depends(get_db)):
     query = db.query(models.Subscription).filter(models.Subscription.user_id == user_id)
 
-    query = query.filter(models.Subscription.is_favorite == False)
+    query = query.filter(models.Subscription.is_subscribed == False)
 
     subscriptions = query.join(models.Channel).all()
     return [
@@ -37,7 +37,7 @@ def not_subscribed_channels(user_id: int, db: Session = Depends(get_db)):
             "channel_name": sub.channel.channel_name,
             "area_id": sub.channel.area_id,
             "is_admin": sub.is_admin,
-            "is_favorite": sub.is_favorite,
+            "is_subscribed": sub.is_subscribed,
         }
         for sub in subscriptions
     ]

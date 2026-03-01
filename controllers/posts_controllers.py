@@ -56,7 +56,7 @@ def get_recent_user_posts(user_id: int, db: Session = Depends(get_db)):
         db.query(models.Subscription.channel_id)
         .filter(
             models.Subscription.user_id == user_id,
-            models.Subscription.is_favorite == True,  # ← solo suscritos
+            models.Subscription.is_subscribed == True,  # ← solo suscritos
         )
         .subquery()
     )

@@ -5,7 +5,7 @@ class SubscriptionBase(BaseModel):
     user_id: int
     channel_id: int
     is_admin: bool
-    is_favorite: bool
+    is_subscribed: bool
 
 class SubscriptionResponse(SubscriptionBase):
     subscription_id: int

@@ -86,7 +86,7 @@ def create_user(user: schemas.UserCreate, db: Session = Depends(get_db)):
                 user_id=new_user.user_id,
                 channel_id=main_channel.channel_id,
                 is_admin=False,
-                is_favorite=True,
+                is_subscribed=True,
             )
         )
 
@@ -111,7 +111,7 @@ def create_user(user: schemas.UserCreate, db: Session = Depends(get_db)):
                 user_id=new_user.user_id,
                 channel_id=channel.channel_id,
                 is_admin=False,
-                is_favorite=True,
+                is_subscribed=True,
             )
         )
 
