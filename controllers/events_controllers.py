@@ -7,15 +7,28 @@ from database import get_db
 
 
 def get_user_events(user_id: int, db: Session = Depends(get_db)):
-    db_events = db.query(models.Event).filter(models.Event.user_id == user_id).all()
+    if not db.query(models.User).filter(models.User.user_id == user_id).first():
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+    db_events = (
+        db.query(models.Event)
+        .filter(models.Event.user_id == user_id)
+        .order_by(models.Event.event_date.asc())
+        .all()
+    )
     return db_events
 
 
 def create_event(event: schemas.EventCreate, db: Session = Depends(get_db)):
-    new_event = models.Event(**event.model_dump())
-    db.add(new_event)
-    db.commit()
-    db.refresh(new_event)
+    if not db.query(models.User).filter(models.User.user_id == event.user_id).first():
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+    try:
+        new_event = models.Event(**event.model_dump())
+        db.add(new_event)
+        db.commit()
+        db.refresh(new_event)
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
     return JSONResponse(
         content={"msg": "SUCCESS", "event_id": new_event.event_id},
         status_code=status.HTTP_201_CREATED,

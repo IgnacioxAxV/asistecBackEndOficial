@@ -1,45 +1,27 @@
 ## Puesta en marcha rápida
 
-### 1) Arrancar todo con un solo comando
+### 1) Requisitos
 
-- Requisitos: Docker (para Postgres) y Python 3.10+.
-- Ejecuta:
+- Python 3.10+
+- El entorno virtual `.venv` ya está creado en la raíz del proyecto con todas las dependencias instaladas.
 
+### 2) Ejecutar el servidor
+
+**Windows:**
 ```bash
-./scripts/dev.sh
+.venv\Scripts\python run_server.py
 ```
 
-El script:
-- crea el entorno virtual `.venv` si no existe e instala dependencias;
-- levanta Postgres con `docker compose` usando las variables de `.env`;
-- inicia Uvicorn en modo recarga en `http://0.0.0.0:8000`.
-
-Variables útiles (en línea o exportadas):
-- `HOST` y `PORT` para cambiar el bind del servidor.
-- `APP_MODULE` (por defecto `app:app`).
-- `USE_DOCKER_DB=false` si quieres saltar Docker y usar SQLite/local.
-
-### 2) Alternativa con Make
-
+**Linux / Mac:**
 ```bash
-# preparar entorno sin ejecutar el servidor
-make setup
-
-# ejecutar con Docker para la DB (usa scripts/dev.sh internamente)
-make dev
-
-# ejecutar sin docker (solo SQLite o tu propio DATABASE_URL)
-make run
-
-# base de datos en contenedor
-make db-up     # levantar Postgres
-make db-logs   # ver logs
-make db-down   # detener y limpiar contenedores
+.venv/bin/python run_server.py
 ```
+
+El servidor arranca con Uvicorn en modo recarga en `http://0.0.0.0:8000`.
 
 ### 3) Variables de entorno
 
-El archivo `.env` ya incluye los valores para Postgres:
+Copia `env.example` a `.env` y rellena los valores si quieres usar PostgreSQL:
 ```
 POSTGRES_USER=postgres
 POSTGRES_PASSWORD=admin
@@ -49,19 +31,33 @@ POSTGRES_PORT=5432
 ```
 
 Opciones:
-- Define `DATABASE_URL` para usar cualquier instancia (ej. cloud/local) sin depender de Docker.
-- Si `DATABASE_URL` está vacío y existen las variables de Postgres, se usará esa conexión.
-- Si no hay Postgres disponible, el backend cae en SQLite local (`test.db`).
-- El driver Postgres se basa en `psycopg[binary]` para evitar dependencias nativas como `pg_config`.
+- Si las variables de Postgres están definidas y la conexión es exitosa, se usará PostgreSQL.
+- Si no hay Postgres disponible (o las variables están vacías), el backend cae automáticamente en SQLite local (`asistec.db`).
+- Por defecto en desarrollo se usa SQLite sin necesidad de configuración adicional.
 
 ### 4) Pruebas
 
 ```bash
-make test
+.venv/Scripts/python -m pytest tests/
+# Linux/Mac:
+.venv/bin/python -m pytest tests/
 ```
 
 ### Notas
 
-- Usa `docker compose` (o `docker-compose` si tu instalación es antigua).
 - El servidor arranca con recarga automática (`--reload`).
-- Para entornos CI/CD, puedes reutilizar `make setup` y `make test`.
+- La base de datos SQLite se crea como `asistec.db` en la raíz del proyecto si no hay Postgres disponible.
+
+### Resetear la base de datos (SQLite)
+
+Si la DB ya existe (`asistec.db`), el seed inicial (Areas, admin, etc.) **no se vuelve a ejecutar**. Para resetear todo desde cero:
+
+```bash
+# Borrar la DB
+rm asistec.db          # Linux/Mac
+del asistec.db         # Windows
+
+# Reiniciar el backend — recrea las tablas y ejecuta el seed automáticamente
+.venv\Scripts\python run_server.py   # Windows
+.venv/bin/python run_server.py       # Linux/Mac
+```

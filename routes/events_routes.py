@@ -15,7 +15,7 @@ def create_event_route(event: schemas.EventCreate, db: Session = Depends(get_db)
     return create_event(event, db)
 
 @event_router.put("/event_update")
-def update_event(event_id: int, event: schemas.EventCreate, db: Session = Depends(get_db)):
+def update_event_route(event_id: int, event: schemas.EventCreate, db: Session = Depends(get_db)):
     return update_event(event_id, event, db)
 
 @event_router.delete("/event_delete")
