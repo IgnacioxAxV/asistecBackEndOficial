@@ -1,12 +1,12 @@
 from pydantic import BaseModel, ConfigDict, model_validator
-from datetime import datetime
+from datetime import datetime, date
 from typing import Optional
 
 # Event Schemas
 class EventBase(BaseModel):
     event_title: str
     event_description: str
-    event_date: datetime
+    event_date: date
     event_start_hour: datetime
     event_final_hour: datetime
     notification_datetime: Optional[str] = None  # String para formato DD/MM/AAAA HH:MM
