@@ -136,6 +136,9 @@ def login_user(user: schemas.UserLogin, db: Session):
     if not db_user.is_active:
         raise HTTPException(status_code=401, detail="Inactive")
 
+    db_user.last_login = datetime.utcnow()
+    db.commit()
+
     return {
         "user_id": db_user.user_id,
         "email": db_user.mail,
