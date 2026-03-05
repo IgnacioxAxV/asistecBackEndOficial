@@ -19,14 +19,14 @@ def get_posts_by_channel(channel_id: int, db: Session = Depends(get_db)):
             "title": p.title,
             "content": p.content,
             "tags": p.tags,  # ← nuevo campo
-            "date": p.date.strftime("%d/%m/%Y %H:%M"),
+            "date": p.date,
         }
         for p in posts
     ]
 
 
 # Crear un nuevo post
-def create_post(post: schemas.PostBase, user_id: int, db: Session):
+def create_post(post: schemas.PostCreate, user_id: int, db: Session):
     subscription = (
         db.query(models.Subscription)
         .filter_by(user_id=user_id, channel_id=post.channel_id, is_admin=True)
@@ -89,7 +89,7 @@ def get_recent_user_posts(user_id: int, db: Session = Depends(get_db)):
             "title": p.title,
             "content": p.content,
             "tags": p.tags,
-            "date": p.date.strftime("%d/%m/%Y %H:%M"),
+            "date": p.date,
         }
         for p in recent_posts
     ]

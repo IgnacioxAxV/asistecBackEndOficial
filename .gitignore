@@ -8,6 +8,10 @@ test.db
 .test.db
 asistec.db
 
+# Postman
+*.postman_collection.json
+*.postman_environment.json
+
 # C extensions
 *.so
 

@@ -12,7 +12,7 @@ def get_posts_by_channel_route(channel_id: int, db: Session = Depends(get_db)):
     return get_posts_by_channel(channel_id, db)
 
 @post_router.post("/create", status_code=status.HTTP_201_CREATED, response_model=dict)
-def create_post_route(post: schemas.PostBase, db: Session = Depends(get_db)):
+def create_post_route(post: schemas.PostCreate, db: Session = Depends(get_db)):
     return create_post(post, post.user_id, db)
 
 @post_router.get("/user_recent_posts", response_model=List[schemas.PostResponse])
