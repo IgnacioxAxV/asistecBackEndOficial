@@ -18,8 +18,8 @@ def get_user_courses(user_id: int, db: Session = Depends(get_db)):
             "course_type": c.course_type,
             "location": c.location,
             "schedule": json.loads(c.schedule),  # ← deserialización
-            "course_start_date": c.course_start_date.strftime("%d/%m/%Y"),
-            "course_final_date": c.course_final_date.strftime("%d/%m/%Y"),
+            "course_start_date": c.course_start_date.strftime("%Y-%m-%d"),
+            "course_final_date": c.course_final_date.strftime("%Y-%m-%d"),
             "notification_datetime": c.notification_datetime,
             "user_id": c.user_id,
             "professor_id": c.professor_id,
