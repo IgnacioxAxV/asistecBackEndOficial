@@ -10,7 +10,7 @@ import json
 # Obtener las actividades asociadas a un usuario
 def get_user_activities(user_id: int, db: Session = Depends(get_db)):
     activities = (
-        db.query(models.Activities).filter(models.Activities.user_id == user_id).all()
+        db.query(models.Activity).filter(models.Activity.user_id == user_id).all()
     )
 
     return [
@@ -29,7 +29,7 @@ def get_user_activities(user_id: int, db: Session = Depends(get_db)):
 
 # Crear una nueva actividad
 def create_activity(activity: schemas.ActivityCreate, db: Session = Depends(get_db)):
-    new_activity = models.Activities(**activity.to_db_dict())
+    new_activity = models.Activity(**activity.to_db_dict())
     db.add(new_activity)
     db.commit()
     db.refresh(new_activity)
@@ -41,8 +41,8 @@ def update_activity(
     activity_id: int, activity: schemas.ActivityCreate, db: Session = Depends(get_db)
 ):
     db_activity = (
-        db.query(models.Activities)
-        .filter(models.Activities.activity_id == activity_id)
+        db.query(models.Activity)
+        .filter(models.Activity.activity_id == activity_id)
         .first()
     )
     if not db_activity:
@@ -60,8 +60,8 @@ def update_activity(
 # Eliminar una actividad existente
 def delete_activity(activity_id: int, db: Session = Depends(get_db)):
     db_activity = (
-        db.query(models.Activities)
-        .filter(models.Activities.activity_id == activity_id)
+        db.query(models.Activity)
+        .filter(models.Activity.activity_id == activity_id)
         .first()
     )
     if not db_activity:

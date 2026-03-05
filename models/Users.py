@@ -24,4 +24,4 @@ class User(Base):
     posts = relationship("Post", back_populates="user")
     events = relationship("Event", back_populates="user")
     courses = relationship("Course", back_populates="user")
-    activities = relationship("Activities", back_populates="user")
+    activities = relationship("Activity", back_populates="user")

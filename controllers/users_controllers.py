@@ -225,7 +225,7 @@ def get_user_next_activities(user_id: int, db: Session = Depends(get_db)):
 
     # Actividades
     activities = (
-        db.query(models.Activities).filter(models.Activities.user_id == user_id).all()
+        db.query(models.Activity).filter(models.Activity.user_id == user_id).all()
     )
 
     for a in activities:
