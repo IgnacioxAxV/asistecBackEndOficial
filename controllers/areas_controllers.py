@@ -1,18 +1,17 @@
-from fastapi import Depends, HTTPException, status
+from fastapi import HTTPException, status
 from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
 import models
 import schemas
-from database import get_db
 
 
 # Obtener todas las áreas
-def get_areas(db: Session = Depends(get_db)):
+def get_areas(db: Session):
     return db.query(models.Area).all()
 
 
 # Crear una nueva área y su canal asociado automáticamente
-def create_area(area: schemas.AreaBase, db: Session = Depends(get_db)):
+def create_area(area: schemas.AreaBase, db: Session):
     existing = db.query(models.Area).filter_by(area_name=area.area_name).first()
     if existing:
         raise HTTPException(
@@ -43,5 +42,5 @@ def create_area(area: schemas.AreaBase, db: Session = Depends(get_db)):
 
 
 # Obtener las áreas donde el is_major sea True
-def get_major_areas(db: Session = Depends(get_db)):
+def get_major_areas(db: Session):
     return db.query(models.Area).filter_by(is_major=True).all()

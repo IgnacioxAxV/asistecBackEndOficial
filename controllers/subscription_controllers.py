@@ -1,14 +1,13 @@
-from fastapi import Depends, HTTPException, status
+from fastapi import HTTPException, status
 from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
 import models
 import schemas
-from database import get_db
 
 
 # Crear una nueva suscripción
 def create_subscription(
-    subscription: schemas.SubscriptionBase, db: Session = Depends(get_db)
+    subscription: schemas.SubscriptionBase, db: Session
 ):
     # Verificamos si el usuario ya está suscrito al canal
     existing = (
@@ -48,7 +47,7 @@ def create_subscription(
 
 
 # Cancelar una suscripción existente (marca is_subscribed=False)
-def cancel_subscription(user_id: int, channel_id: int, db: Session = Depends(get_db)):
+def cancel_subscription(user_id: int, channel_id: int, db: Session):
     subscription = (
         db.query(models.Subscription)
         .filter_by(user_id=user_id, channel_id=channel_id)
@@ -76,7 +75,7 @@ def cancel_subscription(user_id: int, channel_id: int, db: Session = Depends(get
 
 
 # Asignar privilegios de administrador a una suscripción existente
-def make_admin(user_id: int, channel_id: int, db: Session = Depends(get_db)):
+def make_admin(user_id: int, channel_id: int, db: Session):
     # Buscar la suscripción correspondiente
     subscription = (
         db.query(models.Subscription)

@@ -1,14 +1,13 @@
-from fastapi import Depends, HTTPException, status
+from fastapi import HTTPException, status
 from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
 import models
 import schemas
-from database import get_db
 import json
 
 
 # Obtener cursos asociados a un usuario
-def get_user_courses(user_id: int, db: Session = Depends(get_db)):
+def get_user_courses(user_id: int, db: Session):
     courses = db.query(models.Course).filter(models.Course.user_id == user_id).all()
 
     return [
@@ -29,7 +28,7 @@ def get_user_courses(user_id: int, db: Session = Depends(get_db)):
 
 
 # Crear un nuevo curso
-def create_course(course: schemas.CourseCreate, db: Session = Depends(get_db)):
+def create_course(course: schemas.CourseCreate, db: Session):
     if not db.query(models.User).filter(models.User.user_id == course.user_id).first():
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
 
@@ -48,7 +47,7 @@ def create_course(course: schemas.CourseCreate, db: Session = Depends(get_db)):
 
 # Actualizar un curso existente
 def update_course(
-    course_id: int, course: schemas.CourseCreate, db: Session = Depends(get_db)
+    course_id: int, course: schemas.CourseCreate, db: Session
 ):
     db_course = (
         db.query(models.Course).filter(models.Course.course_id == course_id).first()
@@ -66,7 +65,7 @@ def update_course(
 
 
 # Eliminar un curso existente
-def delete_course(course_id: int, db: Session = Depends(get_db)):
+def delete_course(course_id: int, db: Session):
     db_course = (
         db.query(models.Course).filter(models.Course.course_id == course_id).first()
     )

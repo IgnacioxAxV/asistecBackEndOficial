@@ -5,7 +5,7 @@ from typing import Optional
 from datetime import date, datetime, timedelta
 
 # Third-party packages
-from fastapi import Depends, HTTPException, status
+from fastapi import HTTPException, status
 from fastapi.responses import JSONResponse
 from sqlalchemy import select
 from sqlalchemy.orm import Session
@@ -14,7 +14,6 @@ from passlib.context import CryptContext
 # Internal modules
 import models
 import schemas
-from database import get_db
 
 
 # Mapea días a números (Monday = 0)
@@ -40,7 +39,7 @@ def get_user_by_id(user_id: int, db: Session):
     return user
 
 
-def create_user(user: schemas.UserCreate, db: Session = Depends(get_db)):
+def create_user(user: schemas.UserCreate, db: Session):
     # Verificar si ya existe el correo
     db_user = db.query(models.User).filter(models.User.mail == user.mail).first()
     if db_user:
@@ -198,7 +197,7 @@ def get_next_occurrence(
     return None
 
 
-def get_user_next_activities(user_id: int, db: Session = Depends(get_db)):
+def get_user_next_activities(user_id: int, db: Session):
     today = date.today()
     upcoming = []
 
@@ -274,7 +273,7 @@ def get_user_next_activities(user_id: int, db: Session = Depends(get_db)):
     return upcoming[:3]
 
 
-def activate_user(user_id: int, db: Session = Depends(get_db)):
+def activate_user(user_id: int, db: Session):
     user = db.query(models.User).filter(models.User.user_id == user_id).first()
     if not user:
         raise HTTPException(

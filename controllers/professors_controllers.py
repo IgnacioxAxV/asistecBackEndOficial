@@ -1,18 +1,17 @@
-from fastapi import Depends, status
+from fastapi import status
 from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
 import models
 import schemas
-from database import get_db
 
 
-def get_all_professors(db: Session = Depends(get_db)):
+def get_all_professors(db: Session):
     professors = db.query(models.Professor).all()
     return professors
 
 
 # Crear un nuevo profesor
-def create_professor(professor: schemas.ProfessorBase, db: Session = Depends(get_db)):
+def create_professor(professor: schemas.ProfessorBase, db: Session):
     new_prof = models.Professor(**professor.model_dump())
     db.add(new_prof)
     db.commit()

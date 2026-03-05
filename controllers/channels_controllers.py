@@ -1,12 +1,11 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import HTTPException, status
 from sqlalchemy.orm import Session
 import models
 import schemas
-from database import get_db
 
 
 # Obtener canales a los que el usuario está suscrito
-def subscribed_channels(user_id: int, db: Session = Depends(get_db)):
+def subscribed_channels(user_id: int, db: Session):
     query = db.query(models.Subscription).filter(models.Subscription.user_id == user_id)
     query = query.filter(models.Subscription.is_subscribed == True)
 
@@ -25,7 +24,7 @@ def subscribed_channels(user_id: int, db: Session = Depends(get_db)):
 
 
 # Obtener canales a los que el usuario NO está suscrito
-def not_subscribed_channels(user_id: int, db: Session = Depends(get_db)):
+def not_subscribed_channels(user_id: int, db: Session):
     query = db.query(models.Subscription).filter(models.Subscription.user_id == user_id)
 
     query = query.filter(models.Subscription.is_subscribed == False)
@@ -44,7 +43,7 @@ def not_subscribed_channels(user_id: int, db: Session = Depends(get_db)):
 
 
 # Obtener todos los canales (sin importar suscripción)
-def get_all_channels(db: Session = Depends(get_db)):
+def get_all_channels(db: Session):
     channels = db.query(models.Channel).all()
     return [
         {
@@ -57,7 +56,7 @@ def get_all_channels(db: Session = Depends(get_db)):
 
 
 # Crear un nuevo canal si no existe uno con el mismo nombre
-def create_channel(channel: schemas.ChannelBase, db: Session = Depends(get_db)):
+def create_channel(channel: schemas.ChannelBase, db: Session):
     existing = (
         db.query(models.Channel).filter_by(channel_name=channel.channel_name).first()
     )

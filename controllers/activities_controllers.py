@@ -1,14 +1,13 @@
-from fastapi import Depends, HTTPException, status
+from fastapi import HTTPException, status
 from sqlalchemy.orm import Session
 import schemas
 import models
-from database import get_db
 from datetime import datetime
 import json
 
 
 # Obtener las actividades asociadas a un usuario
-def get_user_activities(user_id: int, db: Session = Depends(get_db)):
+def get_user_activities(user_id: int, db: Session):
     activities = (
         db.query(models.Activity).filter(models.Activity.user_id == user_id).all()
     )
@@ -28,7 +27,7 @@ def get_user_activities(user_id: int, db: Session = Depends(get_db)):
 
 
 # Crear una nueva actividad
-def create_activity(activity: schemas.ActivityCreate, db: Session = Depends(get_db)):
+def create_activity(activity: schemas.ActivityCreate, db: Session):
     if not db.query(models.User).filter(models.User.user_id == activity.user_id).first():
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
 
@@ -41,7 +40,7 @@ def create_activity(activity: schemas.ActivityCreate, db: Session = Depends(get_
 
 # Actualizar una actividad existente
 def update_activity(
-    activity_id: int, activity: schemas.ActivityCreate, db: Session = Depends(get_db)
+    activity_id: int, activity: schemas.ActivityCreate, db: Session
 ):
     db_activity = (
         db.query(models.Activity)
@@ -61,7 +60,7 @@ def update_activity(
 
 
 # Eliminar una actividad existente
-def delete_activity(activity_id: int, db: Session = Depends(get_db)):
+def delete_activity(activity_id: int, db: Session):
     db_activity = (
         db.query(models.Activity)
         .filter(models.Activity.activity_id == activity_id)

@@ -1,14 +1,13 @@
-from fastapi import Depends, HTTPException, status
+from fastapi import HTTPException, status
 from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
 from sqlalchemy import desc
 import models
 import schemas
-from database import get_db
 
 
 # Obtener posts por canal
-def get_posts_by_channel(channel_id: int, db: Session = Depends(get_db)):
+def get_posts_by_channel(channel_id: int, db: Session):
     posts = db.query(models.Post).filter(models.Post.channel_id == channel_id).all()
 
     return [
@@ -117,7 +116,7 @@ def delete_post(post_id: int, user_id: int, db: Session):
     )
 
 
-def get_recent_user_posts(user_id: int, db: Session = Depends(get_db)):
+def get_recent_user_posts(user_id: int, db: Session):
     # Subconsulta que filtra solo canales favoritos
     subscribed_channel_ids = (
         db.query(models.Subscription.channel_id)
