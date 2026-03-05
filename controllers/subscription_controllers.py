@@ -9,6 +9,12 @@ import schemas
 def create_subscription(
     subscription: schemas.SubscriptionBase, db: Session
 ):
+    if not db.query(models.User).filter(models.User.user_id == subscription.user_id).first():
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+
+    if not db.query(models.Channel).filter(models.Channel.channel_id == subscription.channel_id).first():
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Channel not found")
+
     # Verificamos si el usuario ya está suscrito al canal
     existing = (
         db.query(models.Subscription)
