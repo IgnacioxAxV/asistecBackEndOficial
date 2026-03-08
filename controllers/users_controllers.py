@@ -134,12 +134,20 @@ def login_user(user: schemas.UserLogin, db: Session):
     db_user.last_login = datetime.utcnow()
     db.commit()
 
+    admin_channels = (
+        db.query(models.Subscription.channel_id)
+        .filter(models.Subscription.user_id == db_user.user_id, models.Subscription.is_admin == True)
+        .all()
+    )
+
     return {
         "user_id": db_user.user_id,
         "email": db_user.mail,
         "full_name": f"{db_user.name} {db_user.lastname}",
         "area": db_user.area.area_name,
         "area_id": db_user.area_id,
+        "user_type": db_user.user_type,
+        "is_channel_admin": len(admin_channels) > 0,
     }
 
 
@@ -238,28 +246,6 @@ def get_user_next_activities(user_id: int, db: Session):
                         "date": occ_date,
                         "start_time": start_time,
                         "location": a.location,
-                    }
-                )
-
-    # Cursos
-    courses = db.query(models.Course).filter(models.Course.user_id == user_id).all()
-
-    for c in courses:
-        schedule = json.loads(c.schedule)
-        next_occurrence = get_next_occurrence(
-            c.course_start_date, c.course_final_date, schedule
-        )
-        if next_occurrence:
-            occ_date, start_time = next_occurrence
-            if occ_date >= today:
-                upcoming.append(
-                    {
-                        "id": c.course_id,
-                        "type": "course",
-                        "title": c.course_title,
-                        "date": occ_date,
-                        "start_time": start_time,
-                        "location": c.location,
                     }
                 )
 

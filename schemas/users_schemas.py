@@ -1,14 +1,30 @@
 from pydantic import BaseModel, EmailStr, ConfigDict, field_validator
 from datetime import date
 
+MIN_AGE = 17
+MAX_AGE = 70
+
 class UserBase(BaseModel):
     name: str
     lastname: str
     mail: EmailStr
     area_id: int
-    carnet_number: str            # ← Nuevo campo
-    gender: str                   # ← Nuevo campo (por ejemplo: "M", "F", "Otro")
-    birth_date: date              # ← Nuevo campo
+    carnet_number: str
+    gender: str
+    birth_date: date
+
+    @field_validator("birth_date")
+    @classmethod
+    def validate_birth_year(cls, v: date) -> date:
+        current_year = date.today().year
+        min_year = current_year - MAX_AGE
+        max_year = current_year - MIN_AGE
+
+        if v.year > max_year:
+            raise ValueError(f"El año de nacimiento no puede ser mayor a {max_year}")
+        if v.year < min_year:
+            raise ValueError(f"El año de nacimiento no puede ser menor a {min_year}")
+        return v
 
 class UserLogin(BaseModel):
     mail: EmailStr

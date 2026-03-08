@@ -9,7 +9,6 @@ class PostCreate(BaseModel):
     title: str
     content: str
     tags: Optional[str] = None
-    # date se omite — el modelo la asigna automáticamente (default=datetime.utcnow)
 
 class PostUpdate(BaseModel):
     title: Optional[str] = None
@@ -19,10 +18,11 @@ class PostUpdate(BaseModel):
 class PostResponse(BaseModel):
     post_id: int
     channel_id: int
+    channel_name: Optional[str] = None
     user_id: int
     title: str
     content: str
     tags: Optional[str] = None
-    date: datetime  # Pydantic serializa a ISO 8601; el frontend parsea con new Date()
+    date: datetime
 
     model_config = ConfigDict(from_attributes=True)

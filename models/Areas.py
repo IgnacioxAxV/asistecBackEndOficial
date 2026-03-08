@@ -12,3 +12,4 @@ class Area(Base):
 
     users = relationship("User", back_populates="area")
     channels = relationship("Channel", back_populates="area")
+    professor_areas = relationship("ProfessorArea", back_populates="area")

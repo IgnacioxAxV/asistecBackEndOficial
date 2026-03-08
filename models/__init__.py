@@ -5,5 +5,6 @@ from .Courses import Course
 from .Events import Event
 from .Posts import Post
 from .Professors import Professor
+from .ProfessorAreas import ProfessorArea
 from .Subscriptions import Subscription
 from .Users import User

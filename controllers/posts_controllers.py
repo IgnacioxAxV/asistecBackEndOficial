@@ -1,3 +1,4 @@
+from datetime import datetime, timedelta
 from fastapi import HTTPException, status
 from sqlalchemy.orm import Session
 from sqlalchemy import desc
@@ -107,17 +108,17 @@ def delete_post(post_id: int, user_id: int, db: Session):
 
 
 def get_recent_user_posts(user_id: int, db: Session):
-    # Subconsulta que filtra solo canales favoritos
     subscribed_channel_ids = (
         db.query(models.Subscription.channel_id)
         .filter(
             models.Subscription.user_id == user_id,
-            models.Subscription.is_subscribed == True,  # ← solo suscritos
+            models.Subscription.is_subscribed == True,
         )
         .subquery()
     )
 
-    # Consulta de los posts recientes de esos canales
+    three_days_ago = datetime.utcnow() - timedelta(days=3)
+
     recent_posts = (
         db.query(
             models.Post.post_id,
@@ -130,9 +131,11 @@ def get_recent_user_posts(user_id: int, db: Session):
             models.Channel.channel_name,
         )
         .join(models.Channel, models.Post.channel_id == models.Channel.channel_id)
-        .filter(models.Post.channel_id.in_(subscribed_channel_ids))
+        .filter(
+            models.Post.channel_id.in_(subscribed_channel_ids),
+            models.Post.date >= three_days_ago,
+        )
         .order_by(desc(models.Post.date))
-        .limit(3)
         .all()
     )
 

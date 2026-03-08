@@ -9,3 +9,5 @@ class Professor(Base):
     professor_id = Column(Integer, primary_key=True, index=True)
     professor_name = Column(String, nullable=False)
     professor_lastname = Column(String, nullable=False)
+
+    professor_areas = relationship("ProfessorArea", back_populates="professor")

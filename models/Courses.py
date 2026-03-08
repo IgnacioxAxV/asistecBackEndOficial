@@ -13,9 +13,8 @@ class Course(Base):
     schedule = Column(String)  # JSON field
     course_start_date = Column(DateTime, nullable=False)
     course_final_date = Column(DateTime, nullable=False)
-    notification_datetime = Column(String)  # Podría ser un Enum
+    notification_datetime = Column(String)
     user_id = Column(Integer, ForeignKey("users.user_id"))
-    professor_id = Column(Integer, ForeignKey("professors.professor_id"))
+    professor_name = Column(String, nullable=False)
 
     user = relationship("User", back_populates="courses")
-    professor = relationship("Professor")

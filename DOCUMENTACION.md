@@ -142,6 +142,7 @@ asistecBackEnd/
 │   ├── Events.py             # Modelo de evento
 │   ├── Posts.py              # Modelo de publicación
 │   ├── Professors.py         # Modelo de profesor
+│   ├── ProfessorAreas.py     # Modelo de relación profesor-área (N:M)
 │   ├── Subscriptions.py      # Modelo de suscripción
 │   └── Activities.py         # Modelo de actividad
 │
@@ -204,15 +205,18 @@ asistecBackEnd/
 ```
 Areas (1) ──────────────── (N) Users
   │                          │
-  │                          ├─── (1) Posts
-  │                          ├─── (1) Events
-  │                          ├─── (1) Courses
-  │                          ├─── (1) Activities
+  │                          ├─── (N) Posts
+  │                          ├─── (N) Events
+  │                          ├─── (N) Courses ──── (N:1) Professors
+  │                          ├─── (N) Activities
   │                          └─── (N) Subscriptions
   │                                     │
-  └─ (1) Channels ──────────────────────┘
-         │
-         └─── (N) Posts
+  ├─ (1) Channels ──────────────────────┘
+  │      │
+  │      └─── (N) Posts
+  │
+  └─ (N) ProfessorAreas ──── (N) Professors
+         (tabla intermedia N:M)
 ```
 
 ### Descripción de Entidades
@@ -291,8 +295,12 @@ Asociación entre usuarios y canales.
 - user_id (FK)              # Usuario suscrito
 - channel_id (FK)           # Canal
 - is_admin                  # True = administrador del canal
-- is_favorite               # True = favorito del usuario
+- is_subscribed             # True = suscripción activa
 ```
+
+**Reglas de negocio:**
+- Los usuarios no pueden desuscribirse del canal de su carrera (suscripción obligatoria)
+- `is_admin = True` permite al usuario crear, editar y eliminar publicaciones en ese canal
 
 #### 5. **Posts** (Publicaciones)
 
@@ -348,20 +356,41 @@ Instructores de cursos.
 ```python
 - professor_id (PK)         # ID único
 - professor_name            # Nombre
-- professor_email           # Email
-- department                # Departamento
+- professor_lastname        # Apellido
 ```
 
-#### 9. **Activities** (Actividades)
+**Relaciones:**
+- Puede pertenecer a múltiples `Areas` a través de `ProfessorAreas`
+- Puede tener múltiples `Courses` asociados
 
-Actividades o tareas asignadas.
+#### 9. **ProfessorAreas** (Relación Profesor-Área)
+
+Tabla intermedia que permite la relación muchos a muchos entre profesores y áreas académicas. Un profesor puede dar clases en múltiples carreras.
+
+```python
+- id (PK)                   # ID único
+- professor_id (FK)         # Profesor
+- area_id (FK)              # Área académica
+- UNIQUE(professor_id, area_id)  # Evita duplicados
+```
+
+**Relaciones:**
+- Pertenece a un `Professor`
+- Pertenece a un `Area`
+
+#### 10. **Activities** (Actividades)
+
+Actividades programadas por el usuario.
 
 ```python
 - activity_id (PK)          # ID único
-- activity_name             # Nombre
-- description               # Descripción
-- due_date                  # Fecha de entrega
-- user_id (FK)              # Asignado a
+- activity_title            # Título
+- location                  # Ubicación
+- schedule                  # Horario (JSON serializado)
+- activity_start_date       # Fecha de inicio
+- activity_final_date       # Fecha final
+- notification_datetime     # Notificaciones
+- user_id (FK)              # Creador
 ```
 
 ---
@@ -813,6 +842,94 @@ Response (200):
 ]
 ```
 
+### 8. Professors (Profesores)
+
+#### GET `/api/professors/?area_id={area_id}`
+**Listar profesores (filtrado opcional por área)**
+
+El parámetro `area_id` es opcional. Si se omite, retorna todos los profesores. Si se incluye, retorna solo los profesores asignados a esa área.
+
+Response (200):
+```json
+[
+  {
+    "professor_id": 1,
+    "professor_name": "Carlos",
+    "professor_lastname": "Ramírez",
+    "areas": [
+      {
+        "area_id": 5,
+        "area_name": "Ing. En Computación San Carlos"
+      }
+    ]
+  }
+]
+```
+
+#### POST `/api/professors/create`
+**Crear nuevo profesor (Admin)**
+
+Request:
+```json
+{
+  "professor_name": "Carlos",
+  "professor_lastname": "Ramírez"
+}
+```
+
+Response (201):
+```json
+{
+  "msg": "SUCCESS",
+  "professor_id": 1
+}
+```
+
+#### POST `/api/professors/assign_area`
+**Asignar profesor a un área (Admin)**
+
+Request:
+```json
+{
+  "professor_id": 1,
+  "area_id": 5
+}
+```
+
+Response (201):
+```json
+{
+  "msg": "SUCCESS"
+}
+```
+
+#### DELETE `/api/professors/remove_area?professor_id=1&area_id=5`
+**Remover profesor de un área (Admin)**
+
+Response (200):
+```json
+{
+  "msg": "SUCCESS"
+}
+```
+
+### 9. Posts - Endpoints Adicionales
+
+#### PUT `/api/posts/update/{post_id}?user_id={user_id}`
+**Editar publicación (requiere is_admin en el canal)**
+
+Request:
+```json
+{
+  "title": "Título actualizado",
+  "content": "Contenido actualizado",
+  "tags": "nuevos,tags"
+}
+```
+
+#### DELETE `/api/posts/delete/{post_id}?user_id={user_id}`
+**Eliminar publicación (requiere is_admin en el canal)**
+
 ---
 
 ## Flujos Principales
@@ -1082,6 +1199,42 @@ CMD ["python", "-m", "uvicorn", "app:app", "--host", "0.0.0.0"]
 
 ---
 
+## Validaciones de Datos (Pydantic Schemas)
+
+Las siguientes validaciones se aplican automáticamente al recibir datos en los endpoints. Si alguna falla, se retorna un error 422 con el mensaje correspondiente.
+
+### Eventos (`EventCreate`)
+| Campo | Validación |
+|-------|-----------|
+| `event_title` | No puede estar vacío (se aplica trim) |
+| `event_description` | No puede estar vacío (se aplica trim) |
+| `event_date` | No puede ser una fecha en el pasado |
+| `event_start_hour` / `event_final_hour` | La hora de inicio debe ser antes de la hora de fin |
+
+### Cursos (`CourseCreate`)
+| Campo | Validación |
+|-------|-----------|
+| `course_title` | No puede estar vacío (se aplica trim) |
+| `location` | No puede estar vacío (se aplica trim) |
+| `schedule` | No puede estar vacío; cada entrada debe tener `date` (día válido en inglés: monday-sunday) y `start_time` (formato HH:MM) |
+| `course_start_date` / `course_final_date` | La fecha de inicio debe ser antes de la fecha final |
+
+### Actividades (`ActivityCreate`)
+| Campo | Validación |
+|-------|-----------|
+| `activity_title` | No puede estar vacío (se aplica trim) |
+| `location` | No puede estar vacío (se aplica trim) |
+| `schedule` | No puede estar vacío; cada entrada debe tener `date` (día válido en inglés: monday-sunday) y `start_time` (formato HH:MM) |
+| `activity_start_date` / `activity_final_date` | La fecha de inicio debe ser antes de la fecha final |
+
+### Profesores (`ProfessorBase`)
+| Campo | Validación |
+|-------|-----------|
+| `professor_name` | No puede estar vacío (se aplica trim) |
+| `professor_lastname` | No puede estar vacío (se aplica trim) |
+
+---
+
 ## Consideraciones de Seguridad
 
 1. **Contraseñas**: Se hashean con bcrypt, nunca se almacenan en texto plano
@@ -1122,6 +1275,20 @@ CMD ["python", "-m", "uvicorn", "app:app", "--host", "0.0.0.0"]
 
 ---
 
-**Última actualización**: 31 de Enero, 2026
-**Versión del Proyecto**: 1.0
+**Última actualización**: 28 de Febrero, 2026
+**Versión del Proyecto**: 1.1
 **Autor**: Equipo de Desarrollo Asistec
+
+### Historial de Cambios
+
+#### v1.1 (28/02/2026)
+- **Nueva tabla `professor_areas`**: Relación muchos a muchos entre profesores y áreas académicas, permitiendo que un profesor esté asociado a múltiples carreras
+- **Nuevos endpoints de profesores**: Filtrado por área, asignación y remoción de áreas
+- **Validaciones de datos mejoradas**: Validaciones en schemas de eventos, cursos, actividades y profesores (campos no vacíos, fechas no en el pasado, formatos de horario, etc.)
+- **Administración de canales**: Endpoints para crear, editar y eliminar publicaciones (requiere `is_admin` en la suscripción del canal)
+- **Corrección de modelo**: `is_favorite` renombrado a `is_subscribed` en suscripciones
+- **Protección de suscripción**: Los usuarios no pueden desuscribirse del canal de su carrera
+- **Filtro de noticias recientes**: El endpoint de noticias solo muestra publicaciones de los últimos 3 días de canales suscritos
+
+#### v1.0 (31/01/2026)
+- Versión inicial del proyecto
