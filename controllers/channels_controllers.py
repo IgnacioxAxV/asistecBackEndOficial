@@ -23,23 +23,27 @@ def subscribed_channels(user_id: int, db: Session):
     ]
 
 
-# Obtener canales a los que el usuario NO está suscrito
+# Obtener canales disponibles (a los que el usuario no está suscrito actualmente)
 def not_subscribed_channels(user_id: int, db: Session):
-    query = db.query(models.Subscription).filter(models.Subscription.user_id == user_id)
-
-    query = query.filter(models.Subscription.is_subscribed == False)
-
-    subscriptions = query.join(models.Channel).all()
-    return [
-        {
-            "channel_id": sub.channel.channel_id,
-            "channel_name": sub.channel.channel_name,
-            "area_id": sub.channel.area_id,
-            "is_admin": sub.is_admin,
-            "is_subscribed": sub.is_subscribed,
-        }
-        for sub in subscriptions
+    subscribed_ids = [
+        row[0]
+        for row in db.query(models.Subscription.channel_id).filter(
+            models.Subscription.user_id == user_id,
+            models.Subscription.is_subscribed == True,
+        ).all()
     ]
+    all_channels = db.query(models.Channel).all()
+    result = []
+    for ch in all_channels:
+        if ch.channel_id not in subscribed_ids:
+            result.append({
+                "channel_id": ch.channel_id,
+                "channel_name": ch.channel_name,
+                "area_id": ch.area_id,
+                "is_admin": False,
+                "is_subscribed": False,
+            })
+    return result
 
 
 # Obtener todos los canales (sin importar suscripción)

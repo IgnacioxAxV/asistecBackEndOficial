@@ -62,6 +62,12 @@ def cancel_subscription(user_id: int, channel_id: int, db: Session):
             status_code=status.HTTP_404_NOT_FOUND, detail="Subscription not found"
         )
 
+    if subscription.is_admin:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="No puedes desuscribirte del canal del cual eres administrador",
+        )
+
     channel = db.query(models.Channel).filter_by(channel_id=channel_id).first()
     user = db.query(models.User).filter_by(user_id=user_id).first()
 
@@ -70,6 +76,14 @@ def cancel_subscription(user_id: int, channel_id: int, db: Session):
             status_code=status.HTTP_403_FORBIDDEN,
             detail="No puedes desuscribirte del canal de tu carrera",
         )
+
+    if channel:
+        asistec_area = db.query(models.Area).filter_by(area_name="AsisTEC").first()
+        if asistec_area and channel.area_id == asistec_area.area_id:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="No puedes desuscribirte del canal AsisTEC",
+            )
 
     subscription.is_subscribed = False
     db.commit()

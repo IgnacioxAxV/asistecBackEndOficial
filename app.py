@@ -32,8 +32,60 @@ def _seed(db):
         except Exception as e:
             print(f"Área omitida: {area_data['area_name']} ({e})")
 
-    # Admin inicial (solo si no existe) -> esto se debe de quitar despues de empezar en producción, es solo para pruebas iniciales
-    if not db.query(models.User).filter(models.User.mail == "admin@estudiantec.cr").first():
+    # --- Canal AsisTEC (notificaciones del sistema) ---
+    # Limpieza: eliminar área/canal legacy "ASISTEC" (solo debe existir "AsisTEC")
+    old_asistec_area = db.query(models.Area).filter_by(area_name="ASISTEC").first()
+    if old_asistec_area:
+        old_channel = db.query(models.Channel).filter_by(area_id=old_asistec_area.area_id).first()
+        if old_channel:
+            db.query(models.Post).filter_by(channel_id=old_channel.channel_id).delete()
+            db.query(models.Subscription).filter_by(channel_id=old_channel.channel_id).delete()
+            db.delete(old_channel)
+        db.delete(old_asistec_area)
+        db.commit()
+        print("Área/canal legacy 'ASISTEC' eliminados para mantener solo AsisTEC.")
+
+    asistec_area = db.query(models.Area).filter_by(area_name="AsisTEC").first()
+    if not asistec_area:
+        asistec_area = models.Area(area_name="AsisTEC", is_major=False)
+        db.add(asistec_area)
+        db.commit()
+        db.refresh(asistec_area)
+        asistec_channel = models.Channel(
+            channel_name="Canal AsisTEC", area_id=asistec_area.area_id
+        )
+        db.add(asistec_channel)
+        db.commit()
+        db.refresh(asistec_channel)
+        print(f"Área y Canal AsisTEC creados (area_id={asistec_area.area_id}, channel_id={asistec_channel.channel_id})")
+    else:
+        asistec_channel = db.query(models.Channel).filter_by(area_id=asistec_area.area_id).first()
+        if asistec_channel and asistec_channel.channel_name != "Canal AsisTEC":
+            asistec_channel.channel_name = "Canal AsisTEC"
+            db.commit()
+            db.refresh(asistec_channel)
+            print("Nombre del canal AsisTEC normalizado a 'Canal AsisTEC'.")
+        print("Área AsisTEC ya existe, omitiendo creación.")
+
+    # Suscribir usuarios existentes al canal AsisTEC
+    if asistec_channel:
+        all_users = db.query(models.User).all()
+        for u in all_users:
+            exists = db.query(models.Subscription).filter_by(
+                user_id=u.user_id, channel_id=asistec_channel.channel_id
+            ).first()
+            if not exists:
+                db.add(models.Subscription(
+                    user_id=u.user_id,
+                    channel_id=asistec_channel.channel_id,
+                    is_admin=False,
+                    is_subscribed=True,
+                ))
+        db.commit()
+
+    # --- Admin inicial ---
+    admin = db.query(models.User).filter(models.User.mail == "admin@estudiantec.cr").first()
+    if not admin:
         pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
         admin = models.User(
             name="Admin",
@@ -49,9 +101,27 @@ def _seed(db):
         )
         db.add(admin)
         db.commit()
+        db.refresh(admin)
         print("Usuario admin creado: admin@estudiantec.cr / Admin#1")
     else:
         print("Usuario admin ya existe, omitiendo.")
+
+    # Asegurar que el admin sea administrador del canal AsisTEC
+    if asistec_channel and admin:
+        sub = db.query(models.Subscription).filter_by(
+            user_id=admin.user_id, channel_id=asistec_channel.channel_id
+        ).first()
+        if not sub:
+            db.add(models.Subscription(
+                user_id=admin.user_id,
+                channel_id=asistec_channel.channel_id,
+                is_admin=True,
+                is_subscribed=True,
+            ))
+            db.commit()
+        elif not sub.is_admin:
+            sub.is_admin = True
+            db.commit()
 
 
 @asynccontextmanager
