@@ -11,6 +11,9 @@ def subscribed_channels(user_id: int, db: Session):
 
     subscriptions = query.join(models.Channel).all()
 
+    asistec_area = db.query(models.Area).filter_by(area_name="AsisTEC").first()
+    asistec_area_id = asistec_area.area_id if asistec_area else None
+
     return [
         {
             "channel_id": sub.channel.channel_id,
@@ -18,12 +21,14 @@ def subscribed_channels(user_id: int, db: Session):
             "area_id": sub.channel.area_id,
             "is_admin": sub.is_admin,
             "is_subscribed": sub.is_subscribed,
+            "is_system": sub.channel.area_id == asistec_area_id,
         }
         for sub in subscriptions
     ]
 
 
 # Obtener canales disponibles (a los que el usuario no está suscrito actualmente)
+# El canal AsisTEC se excluye porque la suscripción es obligatoria.
 def not_subscribed_channels(user_id: int, db: Session):
     subscribed_ids = [
         row[0]
@@ -32,16 +37,21 @@ def not_subscribed_channels(user_id: int, db: Session):
             models.Subscription.is_subscribed == True,
         ).all()
     ]
+
+    asistec_area = db.query(models.Area).filter_by(area_name="AsisTEC").first()
+    asistec_area_id = asistec_area.area_id if asistec_area else None
+
     all_channels = db.query(models.Channel).all()
     result = []
     for ch in all_channels:
-        if ch.channel_id not in subscribed_ids:
+        if ch.channel_id not in subscribed_ids and ch.area_id != asistec_area_id:
             result.append({
                 "channel_id": ch.channel_id,
                 "channel_name": ch.channel_name,
                 "area_id": ch.area_id,
                 "is_admin": False,
                 "is_subscribed": False,
+                "is_system": False,
             })
     return result
 
