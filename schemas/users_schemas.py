@@ -40,6 +40,9 @@ class UserCreate(UserBase):
             raise ValueError("La contraseña debe tener al menos 8 caracteres")
         return v
 
+class ProfileImageUpdate(BaseModel):
+    profile_image: str
+
 class UserListResponse(BaseModel):
     user_id: str
     name: str

@@ -149,6 +149,7 @@ def login_user(user: schemas.UserLogin, db: Session):
         "area_id": db_user.area_id,
         "user_type": db_user.user_type,
         "is_channel_admin": len(admin_channels) > 0,
+        "profile_image": db_user.profile_image,
     }
 
 
@@ -254,6 +255,15 @@ def get_user_next_activities(user_id: int, db: Session):
     upcoming.sort(key=lambda x: parse_datetime(x["date"], x["start_time"]))
 
     return upcoming[:3]
+
+
+def update_profile_image(user_id: str, profile_image: str, db: Session):
+    user = db.query(models.User).filter(models.User.user_id == user_id).first()
+    if not user:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+    user.profile_image = profile_image
+    db.commit()
+    return {"msg": "SUCCESS"}
 
 
 def activate_user(user_id: int, db: Session):
