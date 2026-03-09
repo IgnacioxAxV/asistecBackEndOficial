@@ -54,21 +54,26 @@ def _seed(db):
         db.add(asistec_area)
         db.commit()
         db.refresh(asistec_area)
+        print(f"Área AsisTEC creada (area_id={asistec_area.area_id})")
+    else:
+        print("Área AsisTEC ya existe, omitiendo creación.")
+
+    # Buscar el canal siempre por nombre para evitar UniqueViolation al renombrar
+    asistec_channel = db.query(models.Channel).filter_by(channel_name="Canal AsisTEC").first()
+    if not asistec_channel:
         asistec_channel = models.Channel(
             channel_name="Canal AsisTEC", area_id=asistec_area.area_id
         )
         db.add(asistec_channel)
         db.commit()
         db.refresh(asistec_channel)
-        print(f"Área y Canal AsisTEC creados (area_id={asistec_area.area_id}, channel_id={asistec_channel.channel_id})")
+        print(f"Canal AsisTEC creado (channel_id={asistec_channel.channel_id})")
     else:
-        asistec_channel = db.query(models.Channel).filter_by(area_id=asistec_area.area_id).first()
-        if asistec_channel and asistec_channel.channel_name != "Canal AsisTEC":
-            asistec_channel.channel_name = "Canal AsisTEC"
+        if asistec_channel.area_id != asistec_area.area_id:
+            asistec_channel.area_id = asistec_area.area_id
             db.commit()
             db.refresh(asistec_channel)
-            print("Nombre del canal AsisTEC normalizado a 'Canal AsisTEC'.")
-        print("Área AsisTEC ya existe, omitiendo creación.")
+        print("Canal AsisTEC ya existe, omitiendo creación.")
 
     # Suscribir usuarios existentes al canal AsisTEC
     if asistec_channel:
