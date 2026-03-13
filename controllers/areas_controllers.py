@@ -4,9 +4,13 @@ import models
 import schemas
 
 
-# Obtener todas las áreas
+# Obtener todas las áreas (area_id siempre como string para el schema)
 def get_areas(db: Session):
-    return db.query(models.Area).all()
+    areas = db.query(models.Area).all()
+    return [
+        {"area_id": str(a.area_id), "area_name": a.area_name, "is_major": a.is_major}
+        for a in areas
+    ]
 
 
 # Crear una nueva área y su canal asociado automáticamente
@@ -33,6 +37,10 @@ def create_area(area: schemas.AreaBase, db: Session):
     return {"msg": "SUCCESS", "area_id": new_area.area_id, "channel_id": new_channel.channel_id}
 
 
-# Obtener las áreas donde el is_major sea True
+# Obtener las áreas donde el is_major sea True (area_id siempre como string)
 def get_major_areas(db: Session):
-    return db.query(models.Area).filter_by(is_major=True).all()
+    areas = db.query(models.Area).filter_by(is_major=True).all()
+    return [
+        {"area_id": str(a.area_id), "area_name": a.area_name, "is_major": a.is_major}
+        for a in areas
+    ]

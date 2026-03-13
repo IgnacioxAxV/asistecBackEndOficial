@@ -1,5 +1,6 @@
 from pydantic import BaseModel, EmailStr, ConfigDict, field_validator
 from datetime import date
+from typing import Optional
 
 MIN_AGE = 17
 MAX_AGE = 70
@@ -51,7 +52,8 @@ class UserListResponse(BaseModel):
     carnet_number: str
     gender: str
     birth_date: date
-    area_id: str
+    area_id: Optional[str] = None
     is_active: bool
+    profile_image: Optional[str] = None
 
     model_config = ConfigDict(from_attributes=True)

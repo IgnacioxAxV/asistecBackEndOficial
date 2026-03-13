@@ -10,7 +10,7 @@ def _time_to_minutes(t: str) -> int:
     return int(parts[0]) * 60 + int(parts[1])
 
 
-def _check_schedule_overlap(new_schedule: dict, existing_courses, exclude_course_id: int = None):
+def _check_schedule_overlap(new_schedule: dict, existing_courses, exclude_course_id: str = None):
     """Verifica si el horario del nuevo curso se solapa con cursos existentes."""
     new_entries = []
     for entry in new_schedule.values():
@@ -47,7 +47,7 @@ def _check_schedule_overlap(new_schedule: dict, existing_courses, exclude_course
 
 
 # Obtener cursos asociados a un usuario
-def get_user_courses(user_id: int, db: Session):
+def get_user_courses(user_id: str, db: Session):
     courses = db.query(models.Course).filter(models.Course.user_id == user_id).all()
 
     return [
@@ -84,7 +84,7 @@ def create_course(course: schemas.CourseCreate, db: Session):
 
 # Actualizar un curso existente
 def update_course(
-    course_id: int, course: schemas.CourseCreate, db: Session
+    course_id: str, course: schemas.CourseCreate, db: Session
 ):
     db_course = (
         db.query(models.Course).filter(models.Course.course_id == course_id).first()
@@ -105,7 +105,7 @@ def update_course(
 
 
 # Eliminar un curso existente
-def delete_course(course_id: int, db: Session):
+def delete_course(course_id: str, db: Session):
     db_course = (
         db.query(models.Course).filter(models.Course.course_id == course_id).first()
     )

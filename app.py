@@ -3,11 +3,26 @@ from contextlib import asynccontextmanager
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi import FastAPI
 from passlib.context import CryptContext
+from sqlalchemy import text
 from database import engine, Base, get_db
 from routes import router as api_router
 from controllers.areas_controllers import create_area
 import schemas
 import models
+
+
+def _ensure_sqlite_schema(eng):
+    """Añade columnas faltantes en SQLite (p. ej. profile_image) sin borrar datos."""
+    if "sqlite" not in str(eng.url):
+        return
+    with eng.connect() as conn:
+        r = conn.execute(text("PRAGMA table_info(users)"))
+        rows = r.fetchall()
+    columns = [row[1] for row in rows]
+    if columns and "profile_image" not in columns:
+        with eng.begin() as conn:
+            conn.execute(text("ALTER TABLE users ADD COLUMN profile_image TEXT"))
+        print("Columna users.profile_image añadida (migración SQLite).")
 
 
 def _seed(db):
@@ -131,10 +146,41 @@ def _seed(db):
             sub.is_admin = True
             db.commit()
 
+    # Admin del canal de Computación (usuario específico por ID)
+    ADMIN_COMPUTACION_USER_ID = "445281a0-d8e8-4351-aebd-ca59b9d54095"
+    computacion_area = db.query(models.Area).filter(
+        models.Area.area_name.ilike("%Computación%")
+    ).first()
+    if computacion_area:
+        computacion_channel = db.query(models.Channel).filter(
+            models.Channel.area_id == computacion_area.area_id
+        ).first()
+        admin_compu = db.query(models.User).filter(
+            models.User.user_id == ADMIN_COMPUTACION_USER_ID
+        ).first()
+        if computacion_channel and admin_compu:
+            sub_compu = db.query(models.Subscription).filter_by(
+                user_id=admin_compu.user_id, channel_id=computacion_channel.channel_id
+            ).first()
+            if not sub_compu:
+                db.add(models.Subscription(
+                    user_id=admin_compu.user_id,
+                    channel_id=computacion_channel.channel_id,
+                    is_admin=True,
+                    is_subscribed=True,
+                ))
+                db.commit()
+                print("Admin Computación: suscripción creada como administrador.")
+            elif not sub_compu.is_admin:
+                sub_compu.is_admin = True
+                db.commit()
+                print("Admin Computación: usuario promovido a administrador del canal.")
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     Base.metadata.create_all(bind=engine)
+    _ensure_sqlite_schema(engine)
     db = next(get_db())
     try:
         _seed(db)

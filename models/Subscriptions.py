@@ -1,11 +1,12 @@
 import uuid
-from sqlalchemy import Column, String, Boolean, ForeignKey
+from sqlalchemy import Column, String, Boolean, ForeignKey, UniqueConstraint
 from sqlalchemy.orm import relationship
 from database import Base
 
 
 class Subscription(Base):
     __tablename__ = "subscriptions"
+    __table_args__ = (UniqueConstraint("user_id", "channel_id", name="uq_subscription_user_channel"),)
 
     subscription_id = Column(String(36), primary_key=True, index=True, default=lambda: str(uuid.uuid4()))
     user_id = Column(String(36), ForeignKey("users.user_id"))

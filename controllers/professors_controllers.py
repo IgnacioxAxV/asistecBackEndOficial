@@ -5,7 +5,7 @@ import models
 import schemas
 
 
-def get_all_professors(db: Session, area_id: Optional[int] = None):
+def get_all_professors(db: Session, area_id: Optional[str] = None):
     if area_id is not None:
         area = db.query(models.Area).filter(models.Area.area_id == area_id).first()
         if not area:
@@ -33,7 +33,7 @@ def get_all_professors(db: Session, area_id: Optional[int] = None):
             "professor_id": prof.professor_id,
             "professor_name": prof.professor_name,
             "professor_lastname": prof.professor_lastname,
-            "areas": [{"area_id": a.area_id, "area_name": a.area_name} for a in areas],
+            "areas": [{"area_id": str(a.area_id), "area_name": a.area_name} for a in areas],
         })
     return result
 
@@ -73,7 +73,7 @@ def assign_professor_area(data: schemas.ProfessorAreaCreate, db: Session):
     return {"msg": "SUCCESS"}
 
 
-def remove_professor_area(professor_id: int, area_id: int, db: Session):
+def remove_professor_area(professor_id: str, area_id: str, db: Session):
     record = db.query(models.ProfessorArea).filter(
         models.ProfessorArea.professor_id == professor_id,
         models.ProfessorArea.area_id == area_id,

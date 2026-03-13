@@ -7,7 +7,7 @@ import json
 
 
 # Obtener las actividades asociadas a un usuario
-def get_user_activities(user_id: int, db: Session):
+def get_user_activities(user_id: str, db: Session):
     activities = (
         db.query(models.Activity).filter(models.Activity.user_id == user_id).all()
     )
@@ -40,7 +40,7 @@ def create_activity(activity: schemas.ActivityCreate, db: Session):
 
 # Actualizar una actividad existente
 def update_activity(
-    activity_id: int, activity: schemas.ActivityCreate, db: Session
+    activity_id: str, activity: schemas.ActivityCreate, db: Session
 ):
     db_activity = (
         db.query(models.Activity)
@@ -60,7 +60,7 @@ def update_activity(
 
 
 # Eliminar una actividad existente
-def delete_activity(activity_id: int, db: Session):
+def delete_activity(activity_id: str, db: Session):
     db_activity = (
         db.query(models.Activity)
         .filter(models.Activity.activity_id == activity_id)

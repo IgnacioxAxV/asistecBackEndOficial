@@ -31,9 +31,8 @@ POSTGRES_PORT=5432
 ```
 
 Opciones:
-- Si las variables de Postgres están definidas y la conexión es exitosa, se usará PostgreSQL.
-- Si no hay Postgres disponible (o las variables están vacías), el backend cae automáticamente en SQLite local (`asistec.db`).
-- Por defecto en desarrollo se usa SQLite sin necesidad de configuración adicional.
+- **SQLite (por defecto):** No hace falta instalar nada más. Con `USE_SQLITE=true` (o sin configurar Postgres) se usa `asistec.db` en la raíz del backend. La misma configuración del proyecto (UUIDs, `profile_image`, canal AsisTEC, etc.) funciona con SQLite.
+- **PostgreSQL:** Si defines las variables de Postgres y la conexión es correcta, se usará Postgres. Para crear la base desde cero usa el script `init_db.sql` (ver más abajo).
 
 ### 4) Pruebas
 
@@ -48,16 +47,44 @@ Opciones:
 - El servidor arranca con recarga automática (`--reload`).
 - La base de datos SQLite se crea como `asistec.db` en la raíz del proyecto si no hay Postgres disponible.
 
-### Resetear la base de datos (SQLite)
+### Usar la nueva configuración con SQLite (sin Postgres)
 
-Si la DB ya existe (`asistec.db`), el seed inicial (Areas, admin, etc.) **no se vuelve a ejecutar**. Para resetear todo desde cero:
+La configuración actual (UUIDs, `profile_image`, canal AsisTEC, admin, etc.) funciona con **SQLite** sin instalar Postgres. El backend crea las tablas con el esquema correcto y ejecuta el seed al arrancar.
+
+Si ya tenías una base antigua (`asistec.db` con IDs numéricos), bórrala y arranca de nuevo para que se cree una SQLite nueva con UUIDs:
 
 ```bash
-# Borrar la DB
-rm asistec.db          # Linux/Mac
+# 1. Borrar la DB antigua (desde la carpeta del backend)
 del asistec.db         # Windows
+# rm asistec.db        # Linux/Mac
 
-# Reiniciar el backend — recrea las tablas y ejecuta el seed automáticamente
+# 2. Arrancar el backend — crea asistec.db nueva con el esquema actual y ejecuta el seed
 .venv\Scripts\python run_server.py   # Windows
 .venv/bin/python run_server.py       # Linux/Mac
 ```
+
+Verás mensajes como "Área creada: ...", "Canal AsisTEC creado", "Usuario admin creado". A partir de ahí ya tienes la nueva configuración con SQLite.
+
+### Resetear la base de datos (PostgreSQL) con `init_db.sql`
+
+Cuando uses PostgreSQL y quieras recrear la base desde cero (por ejemplo tras borrar la DB), usa el script `init_db.sql`:
+
+```bash
+# 1. Crear la base de datos vacía
+psql -U postgres -c "CREATE DATABASE asistec;"
+
+# 2. Ejecutar el script (desde la raíz del backend)
+psql -U postgres -d asistec -f init_db.sql
+
+# 3. Arrancar el backend normalmente
+.venv\Scripts\python run_server.py   # Windows
+.venv/bin/python run_server.py       # Linux/Mac
+```
+
+El script incluye:
+- Todas las tablas con sus columnas (incluye `profile_image` en `users`)
+- Áreas semilla (carreras TEC San Carlos + AsisTEC)
+- Canal AsisTEC enlazado al área
+- Usuario admin (`admin@estudiantec.cr` / `Admin#1`) con suscripción al canal como administrador
+
+**Nota:** El backend está alineado con este esquema: modelos con UUID (String(36)), `profile_image` en usuarios, restricción única (user_id, channel_id) en suscripciones y fechas DATE en actividades.

@@ -50,7 +50,7 @@ def create_subscription(
 
 
 # Cancelar una suscripción existente (marca is_subscribed=False)
-def cancel_subscription(user_id: int, channel_id: int, db: Session):
+def cancel_subscription(user_id: str, channel_id: str, db: Session):
     subscription = (
         db.query(models.Subscription)
         .filter_by(user_id=user_id, channel_id=channel_id)
@@ -78,11 +78,20 @@ def cancel_subscription(user_id: int, channel_id: int, db: Session):
         )
 
     if channel:
+        # Canal del sistema AsisTEC
         asistec_area = db.query(models.Area).filter_by(area_name="AsisTEC").first()
         if asistec_area and channel.area_id == asistec_area.area_id:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail="No puedes desuscribirte del canal AsisTEC",
+            )
+
+        # Canal DEVESA obligatorio para todos
+        devesa_area = db.query(models.Area).filter_by(area_name="DEVESA").first()
+        if devesa_area and channel.area_id == devesa_area.area_id:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="No puedes desuscribirte del canal DEVESA",
             )
 
     subscription.is_subscribed = False
@@ -92,7 +101,7 @@ def cancel_subscription(user_id: int, channel_id: int, db: Session):
 
 
 # Asignar privilegios de administrador a una suscripción existente
-def make_admin(user_id: int, channel_id: int, db: Session):
+def make_admin(user_id: str, channel_id: str, db: Session):
     # Buscar la suscripción correspondiente
     subscription = (
         db.query(models.Subscription)

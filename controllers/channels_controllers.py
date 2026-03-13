@@ -5,7 +5,7 @@ import schemas
 
 
 # Obtener canales a los que el usuario está suscrito
-def subscribed_channels(user_id: int, db: Session):
+def subscribed_channels(user_id: str, db: Session):
     query = db.query(models.Subscription).filter(models.Subscription.user_id == user_id)
     query = query.filter(models.Subscription.is_subscribed == True)
 
@@ -29,7 +29,7 @@ def subscribed_channels(user_id: int, db: Session):
 
 # Obtener canales disponibles (a los que el usuario no está suscrito actualmente)
 # El canal AsisTEC se excluye porque la suscripción es obligatoria.
-def not_subscribed_channels(user_id: int, db: Session):
+def not_subscribed_channels(user_id: str, db: Session):
     subscribed_ids = [
         row[0]
         for row in db.query(models.Subscription.channel_id).filter(

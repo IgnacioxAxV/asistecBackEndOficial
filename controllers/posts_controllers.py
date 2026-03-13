@@ -7,7 +7,7 @@ import schemas
 
 
 # Obtener posts por canal
-def get_posts_by_channel(channel_id: int, db: Session):
+def get_posts_by_channel(channel_id: str, db: Session):
     posts = db.query(models.Post).filter(models.Post.channel_id == channel_id).all()
 
     return [
@@ -25,7 +25,7 @@ def get_posts_by_channel(channel_id: int, db: Session):
 
 
 # Crear un nuevo post
-def create_post(post: schemas.PostCreate, user_id: int, db: Session):
+def create_post(post: schemas.PostCreate, user_id: str, db: Session):
     if not db.query(models.User).filter(models.User.user_id == user_id).first():
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
 
@@ -52,7 +52,7 @@ def create_post(post: schemas.PostCreate, user_id: int, db: Session):
     return {"msg": "SUCCESS", "post_id": new_post.post_id}
 
 
-def update_post(post_id: int, user_id: int, post_data: schemas.PostUpdate, db: Session):
+def update_post(post_id: str, user_id: str, post_data: schemas.PostUpdate, db: Session):
     post = db.query(models.Post).filter(models.Post.post_id == post_id).first()
     if not post:
         raise HTTPException(
@@ -83,7 +83,7 @@ def update_post(post_id: int, user_id: int, post_data: schemas.PostUpdate, db: S
     return {"msg": "SUCCESS", "post_id": post.post_id}
 
 
-def delete_post(post_id: int, user_id: int, db: Session):
+def delete_post(post_id: str, user_id: str, db: Session):
     post = db.query(models.Post).filter(models.Post.post_id == post_id).first()
     if not post:
         raise HTTPException(
@@ -107,7 +107,7 @@ def delete_post(post_id: int, user_id: int, db: Session):
     return {"msg": "SUCCESS"}
 
 
-def get_recent_user_posts(user_id: int, db: Session):
+def get_recent_user_posts(user_id: str, db: Session):
     subscribed_channel_ids = (
         db.query(models.Subscription.channel_id)
         .filter(
@@ -141,13 +141,13 @@ def get_recent_user_posts(user_id: int, db: Session):
 
     return [
         {
-            "post_id": p.post_id,
-            "channel_id": p.channel_id,
-            "channel_name": p.channel_name,
-            "user_id": p.user_id,
+            "post_id": str(p.post_id),
+            "channel_id": str(p.channel_id),
+            "channel_name": p.channel_name or "",
+            "user_id": str(p.user_id),
             "title": p.title,
-            "content": p.content,
-            "tags": p.tags,
+            "content": p.content or "",
+            "tags": p.tags if p.tags is not None else "",
             "date": p.date,
         }
         for p in recent_posts

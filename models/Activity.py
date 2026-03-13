@@ -1,5 +1,5 @@
 import uuid
-from sqlalchemy import Column, String, DateTime, ForeignKey
+from sqlalchemy import Column, String, Date, ForeignKey
 from sqlalchemy.orm import relationship
 from database import Base
 
@@ -11,8 +11,8 @@ class Activity(Base):
     activity_title = Column(String, nullable=False)
     location = Column(String, nullable=False)
     schedule = Column(String)
-    activity_start_date = Column(DateTime, nullable=False)
-    activity_final_date = Column(DateTime, nullable=False)
+    activity_start_date = Column(Date, nullable=False)
+    activity_final_date = Column(Date, nullable=False)
     notification_datetime = Column(String)
     user_id = Column(String(36), ForeignKey("users.user_id"))
 

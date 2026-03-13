@@ -29,13 +29,97 @@ def get_all_users(db: Session):
     return db.query(models.User).all()
 
 
-def get_user_by_id(user_id: int, db: Session):
+def get_user_by_id(user_id: str, db: Session):
     user = db.query(models.User).filter(models.User.user_id == user_id).first()
     if not user:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail="User not found"
         )
     return user
+
+
+def _is_channel_admin_domain(email: str) -> bool:
+    """Usuarios con correo @itcr.ac.cr son admins del canal de su área."""
+    if not email:
+        return False
+    return email.lower().strip().endswith("@itcr.ac.cr")
+
+
+def _ensure_primary_subscriptions(db_user: models.User, db: Session):
+    # 1. Asegurar canal principal del área asignada (canal de la carrera).
+    #    Solo usamos canales que YA existen; no creamos canales nuevos aquí.
+    #    Usuarios con correo @itcr.ac.cr quedan como admins de ese canal.
+    is_admin_area = _is_channel_admin_domain(db_user.mail or "")
+    main_channel = None
+    if db_user.area_id:
+        # a) Intentar encontrar un canal ya asociado al área del usuario
+        main_channel = (
+            db.query(models.Channel)
+            .filter(models.Channel.area_id == db_user.area_id)
+            .first()
+        )
+
+        # b) Si no hay canal con area_id, buscar uno existente cuyo nombre contenga el nombre del área
+        if not main_channel:
+            area = db.query(models.Area).filter(models.Area.area_id == db_user.area_id).first()
+            if area:
+                like_pattern = f"%{area.area_name}%"
+                main_channel = (
+                    db.query(models.Channel)
+                    .filter(models.Channel.channel_name.ilike(like_pattern))
+                    .first()
+                )
+    if main_channel:
+        exists = (
+            db.query(models.Subscription)
+            .filter_by(user_id=db_user.user_id, channel_id=main_channel.channel_id)
+            .first()
+        )
+        if not exists:
+            db.add(
+                models.Subscription(
+                    user_id=db_user.user_id,
+                    channel_id=main_channel.channel_id,
+                    is_admin=is_admin_area,
+                    is_subscribed=True,
+                )
+            )
+        else:
+            if not exists.is_subscribed:
+                exists.is_subscribed = True
+            if is_admin_area:
+                exists.is_admin = True
+
+    # 2. Asegurar canales por defecto (solo DEVESA y AsisTEC)
+    area_names = [
+        "DEVESA",
+        "AsisTEC",
+    ]
+
+    additional_channels = (
+        db.query(models.Channel)
+        .join(models.Area)
+        .filter(models.Area.area_name.in_(area_names))
+        .all()
+    )
+
+    for channel in additional_channels:
+        exists = (
+            db.query(models.Subscription)
+            .filter_by(user_id=db_user.user_id, channel_id=channel.channel_id)
+            .first()
+        )
+        if not exists:
+            db.add(
+                models.Subscription(
+                    user_id=db_user.user_id,
+                    channel_id=channel.channel_id,
+                    is_admin=False,
+                    is_subscribed=True,
+                )
+            )
+        elif not exists.is_subscribed:
+            exists.is_subscribed = True
 
 
 def create_user(user: schemas.UserCreate, db: Session):
@@ -72,47 +156,7 @@ def create_user(user: schemas.UserCreate, db: Session):
     db.add(new_user)
     db.flush()
 
-    # 1. Suscribir al canal principal del área asignada
-    main_channel = (
-        db.query(models.Channel)
-        .filter(models.Channel.area_id == new_user.area_id)
-        .first()
-    )
-    if main_channel:
-        db.add(
-            models.Subscription(
-                user_id=new_user.user_id,
-                channel_id=main_channel.channel_id,
-                is_admin=False,
-                is_subscribed=True,
-            )
-        )
-
-    # 2. Suscribir a los canales por defecto
-    area_names = [
-        "DEVESA",
-        "Escuela de Ciencias Naturales y Exactas",
-        "Escuela de Ciencias del Lenguaje",
-        "AsisTEC",
-    ]
-
-    # Buscar los canales por nombre de área
-    additional_channels = (
-        db.query(models.Channel)
-        .join(models.Area)
-        .filter(models.Area.area_name.in_(area_names))
-        .all()
-    )
-
-    for channel in additional_channels:
-        db.add(
-            models.Subscription(
-                user_id=new_user.user_id,
-                channel_id=channel.channel_id,
-                is_admin=False,
-                is_subscribed=True,
-            )
-        )
+    _ensure_primary_subscriptions(new_user, db)
 
     # Un único commit garantiza que el usuario y sus suscripciones primarias
     # se persistan juntos; si algo falla, ninguno queda a medias en la DB.
@@ -133,13 +177,19 @@ def login_user(user: schemas.UserLogin, db: Session):
         raise HTTPException(status_code=401, detail="Inactive")
 
     db_user.last_login = datetime.utcnow()
+    _ensure_primary_subscriptions(db_user, db)
     db.commit()
 
-    admin_channels = (
-        db.query(models.Subscription.channel_id)
+    admin_subs = (
+        db.query(models.Subscription, models.Channel)
+        .join(models.Channel, models.Subscription.channel_id == models.Channel.channel_id)
         .filter(models.Subscription.user_id == db_user.user_id, models.Subscription.is_admin == True)
         .all()
     )
+    admin_channels = [
+        {"channel_id": sub.channel_id, "channel_name": ch.channel_name}
+        for sub, ch in admin_subs
+    ]
 
     return {
         "user_id": db_user.user_id,
@@ -149,6 +199,7 @@ def login_user(user: schemas.UserLogin, db: Session):
         "area_id": db_user.area_id,
         "user_type": db_user.user_type,
         "is_channel_admin": len(admin_channels) > 0,
+        "admin_channels": admin_channels,
         "profile_image": db_user.profile_image,
     }
 
@@ -203,7 +254,7 @@ def get_next_occurrence(
     return None
 
 
-def get_user_next_activities(user_id: int, db: Session):
+def get_user_next_activities(user_id: str, db: Session):
     today = date.today()
     upcoming = []
 
@@ -266,7 +317,7 @@ def update_profile_image(user_id: str, profile_image: str, db: Session):
     return {"msg": "SUCCESS"}
 
 
-def activate_user(user_id: int, db: Session):
+def activate_user(user_id: str, db: Session):
     user = db.query(models.User).filter(models.User.user_id == user_id).first()
     if not user:
         raise HTTPException(
